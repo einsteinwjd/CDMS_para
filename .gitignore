@@ -1,0 +1,44 @@
+# Ignore data directory
+/data/
+data/
+
+# Ignore figures directory
+/figs/
+figs/
+
+# Ignore MATLAB data files
+*.mat
+
+# Common data file formats
+*.csv
+*.json
+*.xlsx
+*.xls
+*.txt
+*.dat
+*.bin
+
+# Image formats
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tif
+*.tiff
+*.svg
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor/IDE files
+*.swp
+*.swo
+.idea/
+.vscode/
