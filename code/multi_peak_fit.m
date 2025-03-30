@@ -6,11 +6,12 @@ path_define;
 load([F1_folder,'modeldata_to_timetable.mat']);
 
 % extract the data of first day for test
-simulatedPN = simulatedPN(1:601,:);
+target_day = 4;
+simulatedPN = simulatedPN(601*(target_day-1)+1:601*target_day,:);
 
 
 %% 调用多峰分布拟合函数
-[fitResults, fittedDistributions] = Multi_peak_distribution_fits(simulatedPN, sim_sizebin);
+[fitResults, fittedDistributions] = Multi_peak_distribution_fits_v2(simulatedPN, sim_sizebin);
 
 %% 提取原始数据
 timePoints = simulatedPN.Time;

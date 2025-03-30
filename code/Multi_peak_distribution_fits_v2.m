@@ -24,19 +24,15 @@ if length(diameters) ~= numSizeBins
 end
 
 % Storage for results
-fitResults = struct('time', cell(numTimePoints, 1), 'peaks', cell(numTimePoints, 1));
+fitResults = struct('time', cell(numTimePoints, 1), 'peaks', cell(numTimePoints, 1), 'gof', cell(numTimePoints, 1));
 fittedDistributions = zeros(numTimePoints, numSizeBins);
 
-% Fit options
-options = fitoptions('Method', 'NonlinearLeastSquares',...
-                    'Lower', [],...
-                    'Upper', [],...
-                    'StartPoint', [],...
-                    'MaxIter', 1000,...
-                    'TolFun', 1e-8,...
-                    'TolX', 1e-8);
+% Define parallel pool
+if isempty(gcp('nocreate'))
+    parpool('local'); % Create local parallel pool
+end
 
-% Process each time point
+% Process each time point in parallel
 parfor t = 1:numTimePoints
     % Current particle size distribution
     currentDist = particleCounts(t,:);
@@ -50,38 +46,45 @@ parfor t = 1:numTimePoints
     % Set initial parameters based on distribution
     initialParams = estimateInitialParameters(currentDist, diameters, numPeaks);
     
-    % 设置参数界限 - 防止拟合过程中参数偏离合理范围
+    % Set parameter bounds - prevent parameters from deviating during fitting
     lower = [];
     upper = [];
     for i = 1:numPeaks
-        % a: 振幅下限为0，上限为最大值的3倍
-        % b: 对数中心在对数直径范围内
-        % c: 宽度限制在合理范围内
+        % a: amplitude lower bound is 0, upper bound is 3 times the maximum value
+        % b: log center within the log diameter range
+        % c: width limited to a reasonable range
         lower = [lower, 0, log(min(diameters))*0.9, 0.05];
         upper = [upper, max(currentDist)*3, log(max(diameters))*1.1, 2];
     end
-    options.Lower = lower;
-    options.Upper = upper;
     
-    % 使用模拟退火式多次拟合策略
+    % Create local fitoptions object (avoid issues in parfor)
+    options = fitoptions('Method', 'NonlinearLeastSquares',...
+                    'Lower', lower,...
+                    'Upper', upper,...
+                    'StartPoint', initialParams,...
+                    'MaxIter', 1000,...
+                    'TolFun', 1e-8,...
+                    'TolX', 1e-8);
+    
+    % Use simulated annealing-like multiple fitting strategy
     bestGof = Inf;
     bestFit = [];
     
-    % 创建备选初始参数集
+    % Create alternative initial parameter sets
     paramSets = {};
     weightSets = [];
     
-    % 添加估计的初始参数
+    % Add estimated initial parameters
     paramSets{1} = initialParams;
     weightSets(1) = 1.0;
     
-    % 为交叠峰区域创建额外参数集
+    % Create additional parameter sets for overlapping peak regions
     if numPeaks >= 2
-        % 检测可能的交叠区域
+        % Detect potential overlapping regions
         potentialOverlaps = findPotentialOverlaps(currentDist, diameters);
         
         if ~isempty(potentialOverlaps)
-            % 生成额外的参数集，专注于交叠区域
+            % Generate additional parameter sets focusing on overlapping regions
             for i = 1:min(2, length(potentialOverlaps))
                 overlapParams = adjustParamsForOverlap(initialParams, numPeaks, potentialOverlaps(i), diameters);
                 paramSets{end+1} = overlapParams;
@@ -90,21 +93,21 @@ parfor t = 1:numTimePoints
         end
     end
     
-    % 多次尝试不同起点的拟合过程
-    maxAttempts = 5 + numPeaks;  % 更多峰需要更多尝试
+    % Multiple attempts with different starting points
+    maxAttempts = 5 + numPeaks;  % More peaks require more attempts
     
     for attempt = 1:maxAttempts
         try
-            % 动态选择初始参数
+            % Dynamically select initial parameters
             if attempt <= length(paramSets)
-                % 使用预设参数集
+                % Use preset parameter sets
                 options.StartPoint = paramSets{attempt};
             else
-                % 根据之前最佳结果扰动，使用退火策略
+                % Perturb based on previous best result using annealing strategy
                 if ~isempty(bestFit)
                     baseParams = coeffvalues(bestFit);
                     
-                    % 随着尝试次数增加，扰动程度先增大后减小
+                    % Increase perturbation range initially, then decrease
                     if attempt < maxAttempts*0.7
                         perturbRange = 0.2 + 0.3*(attempt/maxAttempts);
                     else
@@ -114,16 +117,16 @@ parfor t = 1:numTimePoints
                     perturbation = 1 + perturbRange * (rand(size(baseParams))*2-1);
                     options.StartPoint = baseParams .* perturbation;
                     
-                    % 确保参数在合理范围内
+                    % Ensure parameters are within reasonable bounds
                     options.StartPoint = max(min(options.StartPoint, upper*0.95), lower*1.05);
                 else
-                    % 从初始参数稍微扰动
+                    % Slightly perturb initial parameters
                     perturbedParams = initialParams .* (0.7 + 0.6*rand(size(initialParams)));
                     options.StartPoint = perturbedParams;
                 end
             end
             
-            % 调整优化设置 - 随着迭代逐步提高精度
+            % Adjust optimization settings - gradually increase precision
             if attempt < maxAttempts/2
                 options.MaxIter = 800;
                 options.TolFun = 1e-7;
@@ -134,33 +137,33 @@ parfor t = 1:numTimePoints
                 options.TolX = 1e-8;
             end
             
-            % 进行拟合
+            % Perform fitting
             [fitResult, gof] = fit(diameters', currentDist', fitType, options);
             
-            % 评估拟合质量 - 不仅考虑RMSE，还评估峰的物理意义
+            % Evaluate fit quality - consider RMSE and physical significance of peaks
             qualityScore = evaluateFitQuality(fitResult, gof, currentDist, diameters, numPeaks);
             
-            % 保存最佳拟合结果
+            % Save best fit result
             if qualityScore < bestGof
                 bestGof = qualityScore;
                 bestFit = fitResult;
             end
         catch ME
-            % 记录错误但继续尝试
-            warning('第%d次拟合尝试失败: %s', attempt, ME.message);
+            % Log error but continue attempts
+            warning('Time point %d, attempt %d failed: %s', t, attempt, ME.message);
             continue;
         end
     end
     
-    % 使用最佳拟合结果，或尝试降低复杂度
+    % Use best fit result or attempt to reduce complexity
     if ~isempty(bestFit)
         fitResult = bestFit;
         gof.rmse = bestGof;
     else
-        % 如果所有尝试都失败，尝试不同策略
+        % If all attempts fail, try different strategies
         success = false;
         
-        % 策略1: 减少峰值数量
+        % Strategy 1: Reduce number of peaks
         if numPeaks > 1
             try
                 numPeaks = numPeaks - 1;
@@ -172,26 +175,26 @@ parfor t = 1:numTimePoints
                 [fitResult, gof] = fit(diameters', currentDist', fitType, options);
                 success = true;
             catch
-                % 继续尝试下一个策略
+                % Continue to next strategy
             end
         end
         
-        % 策略2: 使用更简单的交叠峰特定模型
+        % Strategy 2: Use simpler overlapping peak-specific model
         if ~success && numPeaks >= 2
             try
-                specialType = createOverlappingPeakFitType(2); % 特殊的交叠峰模型
+                specialType = createOverlappingPeakFitType(2); % Special overlapping peak model
                 specialParams = estimateOverlappingParams(currentDist, diameters);
                 options.StartPoint = specialParams;
                 [fitResult, gof] = fit(diameters', currentDist', specialType, options);
                 success = true;
             catch
-                % 继续尝试下一个策略
+                % Continue to next strategy
             end
         end
         
-        % 最终后备: 使用单峰高斯模型
+        % Final fallback: Use single-peak Gaussian model
         if ~success
-            warning('拟合失败，使用单峰高斯模型');
+            warning('Time point %d fitting failed, using single-peak Gaussian model', t);
             fitType = fittype('a1*exp(-((log(x)-b1)^2)/(2*c1^2))', 'independent', 'x');
             options.StartPoint = [max(currentDist), log(diameters(round(end/2))), 0.5];
             [fitResult, gof] = fit(diameters', currentDist', fitType, options);
@@ -199,19 +202,20 @@ parfor t = 1:numTimePoints
         end
     end
     
-    % 后处理 - 检查并修正不合理的拟合结果
+    % Post-process - check and correct unreasonable fit results
     fitResult = postProcessFit(fitResult, currentDist, diameters, numPeaks);
     
-    % Store results
-    fitResults(t).time = timePoints(t);
-    fitResults(t).peaks = extractPeakParameters(fitResult, numPeaks);
-    fitResults(t).gof = gof;
+    % Store results (note that in parfor, each element must be stored separately)
+    localFitResult = struct('time', timePoints(t), ...
+                           'peaks', extractPeakParameters(fitResult, numPeaks), ...
+                           'gof', gof);
     
-    % Store fitted distribution
+    % Store results, handle each index separately in parfor
+    fitResults(t) = localFitResult;
     fittedDistributions(t,:) = fitResult(diameters);
 end
 
-% Analyze time evolution of parameters
+% Analyze time evolution of parameters after parallel processing
 analyzeParameterEvolution(fitResults, timePoints);
 
 end
