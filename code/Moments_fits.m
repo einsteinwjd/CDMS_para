@@ -1,4 +1,6 @@
-clear; close all;
+% clear; close all;
+function [] = Moments_fits(target_day)
+close all;
 % Moments_fits.m
 % This script calculates statistical moments of particle size distributions over time
 % from a timetable containing particle number counts in different size bins
@@ -6,7 +8,7 @@ path_define;
 load([F1_folder,'modeldata_to_timetable.mat']);
 
 % extract the data of first day for test
-target_day = 3;
+% target_day = 3;
 simulatedPN = simulatedPN(601*(target_day-1)+1:601*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
@@ -42,13 +44,13 @@ halfway_point = floor(numTimePoints+1); % filter does not work.
 for t = 1:numTimePoints
     % Extract particle number distribution at this time
     PN = table2array(simulatedPN(t, 1:end)); % Exclude time column
-    
+
     % After halfway point, filter out particles below 10nm
     if t > halfway_point
         filter_mask = diameterBins >= 10;
         filtered_PN = PN;
         filtered_PN(~filter_mask) = 0; % Set counts for particles < 10nm to zero
-        
+
         % Calculate moments using filtered data
         for k = 0:6
             moments(t, k+1) = sum(filtered_PN .* diameterBins.^k);
@@ -63,7 +65,7 @@ end
 % Create a timetable for the moments
 momentNames = {'M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'};
 momentsTimetable = timetable(timeVector, moments(:,1), moments(:,2), moments(:,3), moments(:,4), ...
-                          moments(:,5), moments(:,6), moments(:,7), 'VariableNames', momentNames);
+    moments(:,5), moments(:,6), moments(:,7), 'VariableNames', momentNames);
 
 % Calculate derived parameters
 % Total number concentration (0th moment)
@@ -137,8 +139,8 @@ ylabel('\sigma_g');
 grid on;
 
 % Save results
-save([F2_folder,'particle_distribution_moments.mat'], 'momentsTimetable', 'N_total', 'D_mean', ...
-     'S_prop', 'V_prop', 'D_eff', 'geo_std_dev');
+save([F2_folder,'particle_distribution_moments_sim.mat'], 'momentsTimetable', 'N_total', 'D_mean', ...
+    'S_prop', 'V_prop', 'D_eff', 'geo_std_dev');
 
 fprintf('Moment analysis complete. Results saved to particle_distribution_moments.mat\n');
 
@@ -154,17 +156,17 @@ figure('Position', [100, 100, 1000, 600]);
 % For each selected time point, reconstruct and plot the distribution
 for i = 1:length(time_indices)
     t_idx = time_indices(i);
-    
+
     % Extract moments for this time point
     M0 = moments(t_idx, 1);
     M1 = moments(t_idx, 2);
     M2 = moments(t_idx, 3);
-    
+
     % Assuming lognormal distribution
     % Calculate parameters from moments
     D_g = exp(log(D_mean(t_idx)) - 0.5 * log(geo_std_dev(t_idx)^2));
     sigma_g = geo_std_dev(t_idx);
-    
+
     % Reconstruct the distribution using lognormal equation
     n_reconstructed = zeros(size(plot_diameters));
     for j = 1:length(plot_diameters)
@@ -172,17 +174,17 @@ for i = 1:length(time_indices)
         n_reconstructed(j) = (M0(1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
             exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
     end
-    
+
     % Plot reconstructed distribution
     subplot(length(time_indices), 1, i);
-    
+
     % Plot the reconstructed distribution
     semilogx(plot_diameters, n_reconstructed, 'b-', 'LineWidth', 2);
     hold on;
-    
+
     % Plot the original data points for comparison
     semilogx(diameterBins, table2array(simulatedPN(t_idx, 1:end)), 'ro', 'MarkerSize', 6);
-    
+
     title(['Time = ' datestr(timeVector(t_idx), 'HH:MM:SS') ' - Reconstructed vs Original Distribution']);
     xlabel('Diameter (nm)');
     ylabel('dN/dlogD');
@@ -198,48 +200,48 @@ figure('Position', [100, 100, 1000, 600]);
 
 for i = 1:length(time_indices)
     t_idx = time_indices(i);
-    
+
     % Original data
     original_data = table2array(simulatedPN(t_idx, 1:end));
-    
+
     % Try to fit bimodal lognormal distribution
     % Use higher order moments to characterize distribution shape
     kurtosis_value = moments(t_idx, 5) * moments(t_idx, 1) / (moments(t_idx, 3)^2);
     skewness_value = moments(t_idx, 4) * moments(t_idx, 1) / (moments(t_idx, 3) * moments(t_idx, 2));
-    
+
     subplot(length(time_indices), 1, i);
     semilogx(diameterBins, original_data, 'ko', 'MarkerSize', 6);
     hold on;
-    
+
     % Lognormal fit (single mode)
     D_g = exp(log(D_mean(t_idx)) - 0.5 * log(geo_std_dev(t_idx)^2));
     sigma_g = geo_std_dev(t_idx);
-    
+
     n_lognormal = zeros(size(plot_diameters));
     for j = 1:length(plot_diameters)
         D = plot_diameters(j);
         n_lognormal(j) = (moments(t_idx, 1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
             exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
     end
-    
+
     semilogx(plot_diameters, n_lognormal, 'b-', 'LineWidth', 1.5);
-    
+
     % If kurtosis and skewness indicate multimodal distribution, add multimodal fit
     if kurtosis_value > 4.2 % Example threshold, should be adjusted based on actual data
         % Implement bimodal lognormal distribution fitting here
         % Need to optimize multiple parameters
         % E.g., mode fractions, geometric mean diameters, and geometric standard deviations
-        
+
         % n_bimodal = mixture_model(plot_diameters, moments(t_idx, :));
         % semilogx(plot_diameters, n_bimodal, 'r-', 'LineWidth', 1.5);
         % legend('Original Data', 'Single Mode Fit', 'Bimodal Fit');
     else
         legend('Original Data', 'Single Mode Fit');
     end
-    
+
     title(['Time = ' datestr(timeVector(t_idx)) ...
-           ' (Kurtosis=' num2str(kurtosis_value, '%.2f') ...
-           ', Skewness=' num2str(skewness_value, '%.2f') ')']);
+        ' (Kurtosis=' num2str(kurtosis_value, '%.2f') ...
+        ', Skewness=' num2str(skewness_value, '%.2f') ')']);
     xlabel('Diameter (nm)');
     ylabel('dN/dlogD');
     grid on;
@@ -274,7 +276,7 @@ for t = 1:numTimePoints
     % 计算重构的分布
     D_g = exp(log(D_mean(t)) - 0.5 * log(geo_std_dev(t)^2));
     sigma_g = geo_std_dev(t);
-    
+
     for j = 1:length(plot_diameters)
         D = plot_diameters(j);
         reconstructedDistributions(t, j) = (moments(t, 1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
@@ -305,9 +307,9 @@ for i = [1, 2]
     else
         % 重构数据使用第95百分位数作为上限
         upperLimit = prctile(reconstructedDistributions(:), 95);
-        caxis([0, upperLimit]); 
+        caxis([0, upperLimit]);
     end
-    
+
     % 添加颜色条标题
     c = colorbar;
     c.Label.String = 'dN/dlogD';
@@ -327,7 +329,7 @@ if numTimePoints <= 10
     xticks(1:numTimePoints);
     xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
     xtickangle(45);
-    
+
     subplot(1, 2, 2);
     xticks(1:numTimePoints);
     xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
@@ -336,41 +338,108 @@ end
 
 
 %% J30 comparison between original method and moments approximation
-fprintf('Calculating J30 using original and moments-approximated distributions...\n');
+fprintf('计算第%d天J30的观测值和moments近似值时间序列对比...\n', target_day);
 
-% Calculate J30 from original data
+% 计算原始数据的J30
+J30_original = Jx_cal(simulatedPN, diameterBins, 30);
 
-    J30_original = Jx_cal(simulatedPN,diameterBins,30);
+% 创建基于moments重构的粒径分布的timetable
+PN_reconstructed = timetable(simulatedPN.Time, reconstructedDistributions);
 
+% 计算重构分布的J30
+J30_moments = Jx_cal(PN_reconstructed, plot_diameters, 30);
 
-PN_reconstructed = timetable(simulatedPN.Time,reconstructedDistributions);
-    % Calculate J30 from reconstructed distribution
-    J30_moments = Jx_cal(PN_reconstructed,diameterBins,30);
-
-
-% Plot comparison
+% 绘制对比图
 figure('Position', [100, 100, 1000, 500]);
 plot(timeVector, J30_original, 'b-', 'LineWidth', 2);
 hold on;
 plot(timeVector, J30_moments, 'r--', 'LineWidth', 2);
 hold off;
-title('J30 Comparison: Original vs. Moments Approximation');
-xlabel('Time');
+title(['第', num2str(target_day), '天 J30对比: 原始方法 vs. Moments近似']);
+xlabel('时间');
 ylabel('J30 (cm^{-3} s^{-1})');
-legend('Original Method', 'Moments Approximation');
+legend('原始方法', 'Moments近似');
 grid on;
 
-% Calculate error metrics
-relative_error = abs(J30_moments - J30_original) ./ J30_original * 100;
+% 计算误差指标
+valid_indices = (J30_original > 0) & ~isnan(J30_original) & ~isnan(J30_moments);
+relative_error = abs(J30_moments(valid_indices) - J30_original(valid_indices)) ./ J30_original(valid_indices) * 100;
 mean_rel_error = mean(relative_error, 'omitnan');
 max_rel_error = max(relative_error, [], 'omitnan');
 
-% Add text annotation with error metrics
-text(0.05, 0.9, sprintf('Mean Relative Error: %.2f%%\nMax Relative Error: %.2f%%', ...
-     mean_rel_error, max_rel_error), 'Units', 'normalized');
+% 添加误差指标文本注释
+text(0.05, 0.9, sprintf('平均相对误差: %.2f%%\n最大相对误差: %.2f%%', ...
+    mean_rel_error, max_rel_error), 'Units', 'normalized');
 
-% Save results for further analysis
-save([F2_folder,'J30_comparison.mat'], 'J30_original', 'J30_moments', ...
-     'mean_rel_error', 'max_rel_error');
+% 保存图片到Fig_folder (300 DPI)，加入target_day信息
+saveas(gcf, [Fig_folder, sprintf('J30_comparison_timeseries_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('J30_comparison_timeseries_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
 
-fprintf('J30 comparison complete. Results saved to J30_comparison.mat\n');
+% 保存结果供进一步分析
+save([F2_folder, sprintf('J30_comparison_sim_day%d.mat', target_day)], 'J30_original', 'J30_moments', ...
+    'mean_rel_error', 'max_rel_error', 'timeVector');
+
+fprintf('J30对比完成。结果已保存至J30_comparison_sim_day%d.mat\n', target_day);
+
+% 额外创建一个绘图展示粒径分布和30nm的位置
+figure('Position', [100, 100, 1000, 400]);
+subplot(1, 2, 1);
+% 选择一个时间点展示
+sample_time_idx = round(numTimePoints/2);
+semilogx(diameterBins, particleCounts(sample_time_idx, :), 'bo-', 'LineWidth', 1.5);
+hold on;
+semilogx(plot_diameters, reconstructedDistributions(sample_time_idx, :), 'r-', 'LineWidth', 2);
+% 标记30nm位置
+plot([30 30], ylim, 'k--', 'LineWidth', 1.5);
+xlabel('粒径 (nm)');
+ylabel('dN/dlogD');
+title(['第', num2str(target_day), '天, 时间点: ', datestr(timeVector(sample_time_idx), 'HH:MM'), ' 的粒径分布']);
+legend('原始数据', 'Moments重构', '30 nm', 'Location', 'best');
+grid on;
+
+% 绘制不同时间点的J30通量变化
+subplot(1, 2, 2);
+times_to_show = round(linspace(1, numTimePoints, min(6, numTimePoints)));
+hold on;
+for i = 1:length(times_to_show)
+    t_idx = times_to_show(i);
+    plot(diameterBins, particleCounts(t_idx, :) ./ max(particleCounts(t_idx, :)), 'LineWidth', 1.5);
+end
+% 标记30nm位置
+plot([30 30], ylim, 'k--', 'LineWidth', 1.5);
+set(gca, 'XScale', 'log');
+title(['第', num2str(target_day), '天不同时间点的归一化粒径分布']);
+xlabel('粒径 (nm)');
+ylabel('归一化dN/dlogD');
+legend_str = cellstr(datestr(timeVector(times_to_show), 'HH:MM'));
+legend([legend_str; '30 nm'], 'Location', 'best');
+grid on;
+
+% 保存图片到Fig_folder (300 DPI)
+saveas(gcf, [Fig_folder, sprintf('J30_distribution_comparison_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('J30_distribution_comparison_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 同样为之前生成的图保存300 DPI版本
+% 保存矩分析主图
+figure(1); % 假设这是矩分析的主图
+saveas(gcf, [Fig_folder, sprintf('moments_analysis_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('moments_analysis_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存分布重构验证图
+figure(2); % 假设这是分布重构验证图
+saveas(gcf, [Fig_folder, sprintf('distribution_reconstruction_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('distribution_reconstruction_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存高阶矩分析图
+figure(3); % 假设这是高阶矩分析图
+saveas(gcf, [Fig_folder, sprintf('higher_order_moments_analysis_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('higher_order_moments_analysis_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存热图
+figure(4); % 假设这是热图
+saveas(gcf, [Fig_folder, sprintf('particle_distribution_heatmap_sim_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('particle_distribution_heatmap_sim_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+fprintf('所有图片已保存为300 DPI的PNG格式到 %s，文件名中包含第%d天信息\n', Fig_folder, target_day);
+
+end

@@ -1,4 +1,6 @@
-clear; close all;
+% clear; close all;
+function [] = Moments_fits_obs(target_day)
+close all;
 % Moments_fits.m
 % This script calculates statistical moments of particle size distributions over time
 % from a timetable containing particle number counts in different size bins
@@ -6,7 +8,7 @@ path_define;
 load([F1_folder,'timetable_data.mat']);
 
 % extract the data of first day for test
-target_day = 3;
+% target_day = 1;
 simulatedPN = tt_psd(120*(target_day-1)+1:120*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
@@ -136,7 +138,7 @@ ylabel('\sigma_g');
 grid on;
 
 % Save results
-save([F2_folder,'particle_distribution_moments.mat'], 'momentsTimetable', 'N_total', 'D_mean', ...
+save([F2_folder,'particle_distribution_moments_obs.mat'], 'momentsTimetable', 'N_total', 'D_mean', ...
      'S_prop', 'V_prop', 'D_eff', 'geo_std_dev');
 
 fprintf('Moment analysis complete. Results saved to particle_distribution_moments.mat\n');
@@ -368,8 +370,12 @@ max_rel_error = max(relative_error, [], 'omitnan');
 text(0.05, 0.9, sprintf('平均相对误差: %.2f%%\n最大相对误差: %.2f%%', ...
      mean_rel_error, max_rel_error), 'Units', 'normalized');
 
+% 保存图片到Fig_folder (300 DPI)，加入target_day信息
+saveas(gcf, [Fig_folder, sprintf('J30_comparison_timeseries_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('J30_comparison_timeseries_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
 % 保存结果供进一步分析
-save([F2_folder,'J30_comparison.mat'], 'J30_original', 'J30_moments', ...
+save([F2_folder,'J30_comparison_obs.mat'], 'J30_original', 'J30_moments', ...
      'mean_rel_error', 'max_rel_error', 'timeVector');
 
 fprintf('J30对比完成。结果已保存至J30_comparison.mat\n');
@@ -393,3 +399,46 @@ grid on;
 % 绘制不同时间点的J30通量变化
 subplot(1, 2, 2);
 times_to_show = round(linspace(1, numTimePoints, min(6, numTimePoints)));
+hold on;
+for i = 1:length(times_to_show)
+    t_idx = times_to_show(i);
+    plot(diameterBins, particleCounts(t_idx, :) ./ max(particleCounts(t_idx, :)), 'LineWidth', 1.5);
+end
+% 标记30nm位置
+plot([30 30], ylim, 'k--', 'LineWidth', 1.5);
+set(gca, 'XScale', 'log');
+title('不同时间点的归一化粒径分布');
+xlabel('粒径 (nm)');
+ylabel('归一化dN/dlogD');
+legend_str = cellstr(datestr(timeVector(times_to_show), 'HH:MM'));
+legend([legend_str; '30 nm'], 'Location', 'best');
+grid on;
+
+% 保存图片到Fig_folder (300 DPI)
+saveas(gcf, [Fig_folder, sprintf('J30_distribution_comparison_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('J30_distribution_comparison_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 同样为之前生成的图保存300 DPI版本
+% 保存矩分析主图
+figure(1); % 假设这是矩分析的主图
+saveas(gcf, [Fig_folder, sprintf('moments_analysis_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('moments_analysis_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存分布重构验证图
+figure(2); % 假设这是分布重构验证图
+saveas(gcf, [Fig_folder, sprintf('distribution_reconstruction_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('distribution_reconstruction_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存高阶矩分析图
+figure(3); % 假设这是高阶矩分析图
+saveas(gcf, [Fig_folder, sprintf('higher_order_moments_analysis_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('higher_order_moments_analysis_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+% 保存热图
+figure(4); % 假设这是热图
+saveas(gcf, [Fig_folder, sprintf('particle_distribution_heatmap_obs_day%d.fig', target_day)]);
+print(gcf, [Fig_folder, sprintf('particle_distribution_heatmap_obs_day%d_300dpi', target_day)], '-dpng', '-r300');
+
+fprintf('所有图片已保存为300 DPI的PNG格式到 %s，文件名中包含第%d天信息\n', Fig_folder, target_day);
+
+end
