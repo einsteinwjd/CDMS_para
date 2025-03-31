@@ -3,11 +3,11 @@ clear; close all;
 % This script calculates statistical moments of particle size distributions over time
 % from a timetable containing particle number counts in different size bins
 path_define;
-load([F1_folder,'modeldata_to_timetable.mat']);
+load([F1_folder,'timetable_data.mat']);
 
 % extract the data of first day for test
-target_day = 4;
-simulatedPN = simulatedPN(601*(target_day-1)+1:601*target_day,:);
+target_day = 3;
+simulatedPN = tt_psd(120*(target_day-1)+1:120*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
 if ~exist('simulatedPN', 'var')
@@ -23,8 +23,21 @@ end
 timeVector = simulatedPN.Time;
 numTimePoints = height(simulatedPN);
 
-% Extract bin centers (geometric mean diameters)
-diameterBins = sim_sizebin;
+% Extract bin centers from column names of simulatedPN
+varNames = simulatedPN.Properties.VariableNames;
+diameterBins = zeros(1, length(varNames));
+
+for i = 1:length(varNames)
+    % Extract numeric part after 'd' character (e.g., 'd1.4' -> 1.4)
+    varName = varNames{i};
+    if startsWith(varName, 'd')
+        diameterStr = extractAfter(varName, 'd');
+        diameterBins(i) = str2double(diameterStr);
+    end
+end
+
+% Remove any zero values (in case there were non-diameter columns)
+diameterBins = diameterBins(diameterBins > 0);
 numBins = length(diameterBins);
 minDiameter = min(diameterBins);
 maxDiameter = max(diameterBins);

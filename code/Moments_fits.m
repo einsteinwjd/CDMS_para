@@ -35,17 +35,31 @@ diameterBins = logspace(log10(minDiameter), log10(maxDiameter), numBins);
 % Initialize arrays to store moments
 moments = zeros(numTimePoints, 7); % 0th through 6th moments
 
-% Calculate moments for each time point
+
+% Add a filter to ignore particles below 10nm after the halfway point in time
+halfway_point = floor(numTimePoints+1); % filter does not work.
+
 for t = 1:numTimePoints
     % Extract particle number distribution at this time
     PN = table2array(simulatedPN(t, 1:end)); % Exclude time column
     
-    % Calculate moments (k = 0, 1, 2, 3, 4, 5, 6)
-    for k = 0:6
-        moments(t, k+1) = sum(PN .* diameterBins.^k);
+    % After halfway point, filter out particles below 10nm
+    if t > halfway_point
+        filter_mask = diameterBins >= 10;
+        filtered_PN = PN;
+        filtered_PN(~filter_mask) = 0; % Set counts for particles < 10nm to zero
+        
+        % Calculate moments using filtered data
+        for k = 0:6
+            moments(t, k+1) = sum(filtered_PN .* diameterBins.^k);
+        end
+    else
+        % Calculate moments as before for first half
+        for k = 0:6
+            moments(t, k+1) = sum(PN .* diameterBins.^k);
+        end
     end
 end
-
 % Create a timetable for the moments
 momentNames = {'M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'};
 momentsTimetable = timetable(timeVector, moments(:,1), moments(:,2), moments(:,3), moments(:,4), ...
