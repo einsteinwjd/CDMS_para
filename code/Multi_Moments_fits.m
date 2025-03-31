@@ -35,17 +35,86 @@ diameterBins = logspace(log10(minDiameter), log10(maxDiameter), numBins);
 % Initialize arrays to store moments
 moments = zeros(numTimePoints, 7); % 0th through 6th moments
 
-% Calculate moments for each time point
+
+% Loop through each time point to calculate moments
 for t = 1:numTimePoints
     % Extract particle number distribution at this time
     PN = table2array(simulatedPN(t, 1:end)); % Exclude time column
     
-    % Calculate moments (k = 0, 1, 2, 3, 4, 5, 6)
-    for k = 0:6
-        moments(t, k+1) = sum(PN .* diameterBins.^k);
+    % Look for peaks in the distribution
+    [pks, locs] = findpeaks(PN, 'MinPeakHeight', max(PN)*0.1);
+    
+    % Check if we have multiple peaks
+    if length(pks) > 1
+        % Get the diameter values at peak locations
+        peak_diameters = diameterBins(locs);
+        
+        % Check if any peaks are separated by at least 20nm
+        peaks_far_apart = false;
+        for i = 1:length(peak_diameters)
+            for j = i+1:length(peak_diameters)
+                if abs(peak_diameters(i) - peak_diameters(j)) >= 30
+                    peaks_far_apart = true;
+                    break;
+                end
+            end
+            if peaks_far_apart
+                break;
+            end
+        end
+        
+        % If peaks are separated by at least 20nm, use only the largest diameter peak
+        if peaks_far_apart
+            % Find the peak with the largest diameter
+            [~, max_idx] = max(peak_diameters);
+            peak_loc = locs(max_idx);
+            
+            % Create a filtered version of the distribution
+            filtered_PN = zeros(size(PN));
+            
+            % Find the left boundary (valley or start)
+            left_boundary = 1;
+            if peak_loc > 1
+                for i = peak_loc-1:-1:1
+                    if PN(i) < PN(i+1)
+                        left_boundary = i;
+                    else
+                        break;
+                    end
+                end
+            end
+            
+            % Find the right boundary (valley or end)
+            right_boundary = length(PN);
+            if peak_loc < length(PN)
+                for i = peak_loc+1:length(PN)
+                    if i == length(PN) || PN(i) < PN(i-1)
+                        right_boundary = i;
+                        break;
+                    end
+                end
+            end
+            
+            % Use only the largest peak for moment calculation
+            filtered_PN(left_boundary:right_boundary) = PN(left_boundary:right_boundary);
+            
+            % Calculate moments using the filtered data
+            for k = 0:6
+                moments(t, k+1) = sum(filtered_PN .* diameterBins.^k);
+            end
+        else
+            % Peaks are close together, use all data
+            for k = 0:6
+                moments(t, k+1) = sum(PN .* diameterBins.^k);
+            end
+        end
+    else
+        % Single peak or no clear peaks, use all data
+        for k = 0:6
+            moments(t, k+1) = sum(PN .* diameterBins.^k);
+        end
     end
 end
-
 % Create a timetable for the moments
 momentNames = {'M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'};
 momentsTimetable = timetable(timeVector, moments(:,1), moments(:,2), moments(:,3), moments(:,4), ...
@@ -180,7 +249,7 @@ end
 sgtitle('Verification of Moment Analysis by Distribution Reconstruction');
 
 %% Fit multimodal distributions
-figure('Position', [100, 100, 1000, 800]);
+figure('Position', [100, 100, 1000, 600]);
 
 for i = 1:length(time_indices)
     t_idx = time_indices(i);
@@ -188,11 +257,8 @@ for i = 1:length(time_indices)
     % Original data
     original_data = table2array(simulatedPN(t_idx, 1:end));
     
-    % 检测分布是否为多峰分布
-    % 计算峰值点
-    [peaks, peak_locs] = findpeaks(original_data, 'MinPeakHeight', max(original_data)*0.2, 'MinPeakDistance', 3);
-    
-    % 使用kurtosis和skewness作为辅助判断
+    % Try to fit bimodal lognormal distribution
+    % Use higher order moments to characterize distribution shape
     kurtosis_value = moments(t_idx, 5) * moments(t_idx, 1) / (moments(t_idx, 3)^2);
     skewness_value = moments(t_idx, 4) * moments(t_idx, 1) / (moments(t_idx, 3) * moments(t_idx, 2));
     
@@ -211,114 +277,42 @@ for i = 1:length(time_indices)
             exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
     end
     
-    % 判断是否需要多峰拟合
-    is_multimodal = (length(peaks) > 1) || (kurtosis_value > 3.5);
+    semilogx(plot_diameters, n_lognormal, 'b-', 'LineWidth', 1.5);
     
-    if is_multimodal
-        % 设置初始拟合参数 (假设最多两个模态)
-        if length(peaks) >= 2
-            % 基于峰位置估计初始参数
-            mode1_amp = peaks(1);
-            mode1_center = diameterBins(peak_locs(1));
-            mode1_width = 0.4; % 初始宽度估计
-            
-            mode2_amp = peaks(2);
-            mode2_center = diameterBins(peak_locs(2));
-            mode2_width = 0.4;
-            total_number = moments(t_idx, 1);
-            initial_params = [mode1_amp, mode1_center, mode1_width, mode2_amp, mode2_center, mode2_width];
-        else
-            % 如果峰值检测不理想但分布仍然表现为多峰，使用启发式方法设置初始值
-            total_number = moments(t_idx, 1);
-            initial_params = [total_number*0.6, D_mean(t_idx)*0.7, 0.4, total_number*0.4, D_mean(t_idx)*1.5, 0.5];
-        end
+    % If kurtosis and skewness indicate multimodal distribution, add multimodal fit
+    if kurtosis_value > 4.2 % Example threshold, should be adjusted based on actual data
+        % Implement bimodal lognormal distribution fitting here
+        % Need to optimize multiple parameters
+        % E.g., mode fractions, geometric mean diameters, and geometric standard deviations
         
-        % 定义双模态对数正态分布函数
-        bimodal_lognormal = @(params, D) (params(1) / (sqrt(2*pi) * params(3) * D)) .* ...
-            exp(-(log(D) - log(params(2))).^2 ./ (2 * params(3)^2)) + ...
-            (params(4) / (sqrt(2*pi) * params(6) * D)) .* ...
-            exp(-(log(D) - log(params(5))).^2 ./ (2 * params(6)^2));
-        
-        % 定义误差函数
-        error_func = @(params) sum((bimodal_lognormal(params, diameterBins) - original_data).^2);
-        
-        % 非线性优化求解
-        options = optimset('Display', 'off', 'MaxIter', 1000);
-        
-        % 设置参数下界和上界
-        lb = [0, minDiameter, 0.1, 0, minDiameter, 0.1]; % 下界
-        ub = [total_number*2, maxDiameter, 1.5, total_number*2, maxDiameter, 1.5]; % 上界
-        
-        [fitted_params, ~] = fmincon(error_func, initial_params, [], [], [], [], lb, ub, [], options);
-        
-        % 使用拟合参数生成双模态分布
-        n_bimodal = bimodal_lognormal(fitted_params, plot_diameters);
-        
-        % 绘制单峰拟合
-        semilogx(plot_diameters, n_lognormal, 'b-', 'LineWidth', 1.5);
-        
-        % 绘制总的双峰拟合
-        semilogx(plot_diameters, n_bimodal, 'r-', 'LineWidth', 2);
-        
-        % 绘制各个模态的贡献
-        mode1 = (fitted_params(1) / (sqrt(2*pi) * fitted_params(3) * plot_diameters)) .* ...
-            exp(-(log(plot_diameters) - log(fitted_params(2))).^2 ./ (2 * fitted_params(3)^2));
-        mode2 = (fitted_params(4) / (sqrt(2*pi) * fitted_params(6) * plot_diameters)) .* ...
-            exp(-(log(plot_diameters) - log(fitted_params(5))).^2 ./ (2 * fitted_params(6)^2));
-        
-        semilogx(plot_diameters, mode1, 'm--', 'LineWidth', 1);
-        semilogx(plot_diameters, mode2, 'g--', 'LineWidth', 1);
-        
-        legend('原始数据', '单峰拟合', '双峰拟合', '模态1', '模态2');
-        
-        % 显示拟合参数
-        param_text = sprintf('Mode 1: N=%.2e, D_g=%.1f nm, σ_g=%.2f\nMode 2: N=%.2e, D_g=%.1f nm, σ_g=%.2f', ...
-            fitted_params(1), fitted_params(2), fitted_params(3), ...
-            fitted_params(4), fitted_params(5), fitted_params(6));
-        
-        % 计算各模态对总浓度的贡献比例
-        total_bimodal = fitted_params(1) + fitted_params(4);
-        mode1_fraction = fitted_params(1) / total_bimodal * 100;
-        mode2_fraction = fitted_params(4) / total_bimodal * 100;
-        
-        fraction_text = sprintf('Mode 1: %.1f%%, Mode 2: %.1f%%', mode1_fraction, mode2_fraction);
+        % n_bimodal = mixture_model(plot_diameters, moments(t_idx, :));
+        % semilogx(plot_diameters, n_bimodal, 'r-', 'LineWidth', 1.5);
+        % legend('Original Data', 'Single Mode Fit', 'Bimodal Fit');
     else
-        % 仅单峰分布
-        semilogx(plot_diameters, n_lognormal, 'b-', 'LineWidth', 2);
-        legend('原始数据', '单峰拟合');
-        
-        param_text = sprintf('D_g=%.1f nm, σ_g=%.2f', D_g, sigma_g);
-        fraction_text = '';
+        legend('Original Data', 'Single Mode Fit');
     end
     
-    title(['时间点 = ' datestr(timeVector(t_idx), 'HH:MM:SS') ...
-           ' (峰值个数=' num2str(length(peaks)) ...
-           ', 峭度=' num2str(kurtosis_value, '%.2f') ...
-           ', 偏度=' num2str(skewness_value, '%.2f') ')']);
-    
-    % 添加拟合参数文本
-    text(0.05, 0.95, param_text, 'Units', 'normalized', 'FontSize', 8, ...
-        'HorizontalAlignment', 'left', 'VerticalAlignment', 'top', 'BackgroundColor', [1 1 1 0.7]);
-    
-    if ~isempty(fraction_text)
-        text(0.05, 0.85, fraction_text, 'Units', 'normalized', 'FontSize', 8, ...
-            'HorizontalAlignment', 'left', 'VerticalAlignment', 'top', 'BackgroundColor', [1 1 1 0.7]);
-    end
-    
-    xlabel('粒径 (nm)');
+    title(['Time = ' datestr(timeVector(t_idx)) ...
+           ' (Kurtosis=' num2str(kurtosis_value, '%.2f') ...
+           ', Skewness=' num2str(skewness_value, '%.2f') ')']);
+    xlabel('Diameter (nm)');
     ylabel('dN/dlogD');
     grid on;
 end
 
-sgtitle('高阶矩分析与多峰粒径分布拟合');
+sgtitle('Higher-Order Moments Analysis and Fitting of Particle Size Distributions');
 
-%% 重构随时间变化的热图，考虑多模态分布
-figure('Position', [100, 100, 1200, 600]);
+%% 创建随时间变化的热图
+% 重新组织粒子数据用于热图绘制
+particleCounts = table2array(simulatedPN(:, 1:numBins));
+
+% 创建时间与粒径的网格
+[Y, X] = meshgrid(diameterBins, 1:numTimePoints);
+
+figure('Position', [100, 100, 1200, 500]);
 
 % 原始数据热图
 subplot(1,2,1);
-particleCounts = table2array(simulatedPN(:, 1:numBins));
-[Y, X] = meshgrid(diameterBins, 1:numTimePoints);
 surf(X, Y, particleCounts);
 set(gca, 'YScale', 'log');  % Y轴改为log刻度
 view(2); % 平面视图
@@ -326,108 +320,63 @@ shading interp;
 colorbar;
 ylabel('粒径 (nm)');
 xlabel('时间点索引');
-title('原始粒径分布随时间变化');
+title('粒径分布随时间变化');
 
-% 重构数据热图（考虑多峰分布）
+% 重构数据热图
 subplot(1,2,2);
 reconstructedDistributions = zeros(numTimePoints, length(plot_diameters));
-
-% 对每个时间点检测并拟合分布
 for t = 1:numTimePoints
-    % 原始数据
-    original_data = table2array(simulatedPN(t, 1:end));
+    % 计算重构的分布
+    D_g = exp(log(D_mean(t)) - 0.5 * log(geo_std_dev(t)^2));
+    sigma_g = geo_std_dev(t);
     
-    % 检测是否为多峰分布
-    [peaks, peak_locs] = findpeaks(original_data, 'MinPeakHeight', max(original_data)*0.2, 'MinPeakDistance', 3);
-    kurtosis_value = moments(t, 5) * moments(t, 1) / (moments(t, 3)^2);
-    
-    is_multimodal = (length(peaks) > 1) || (kurtosis_value > 3.5);
-    
-    if is_multimodal && length(peaks) >= 2
-        % 多峰拟合
-        % 使用前面类似的方法设置初始参数
-        mode1_amp = peaks(1);
-        mode1_center = diameterBins(peak_locs(1));
-        mode1_width = 0.4;
-        
-        mode2_amp = peaks(2);
-        mode2_center = diameterBins(peak_locs(2));
-        mode2_width = 0.4;
-        
-        initial_params = [mode1_amp, mode1_center, mode1_width, mode2_amp, mode2_center, mode2_width];
-        
-        % 定义双模态对数正态分布函数
-        bimodal_lognormal = @(params, D) (params(1) / (sqrt(2*pi) * params(3) * D)) .* ...
-            exp(-(log(D) - log(params(2))).^2 ./ (2 * params(3)^2)) + ...
-            (params(4) / (sqrt(2*pi) * params(6) * D)) .* ...
-            exp(-(log(D) - log(params(5))).^2 ./ (2 * params(6)^2));
-        
-        % 定义误差函数
-        error_func = @(params) sum((bimodal_lognormal(params, diameterBins) - original_data).^2);
-        
-        % 优化参数
-        options = optimset('Display', 'off', 'MaxIter', 1000);
-        total_number = moments(t, 1);
-        lb = [0, minDiameter, 0.1, 0, minDiameter, 0.1];
-        ub = [total_number*2, maxDiameter, 1.5, total_number*2, maxDiameter, 1.5];
-        
-        try
-            [fitted_params, ~] = fmincon(error_func, initial_params, [], [], [], [], lb, ub, [], options);
-            % 使用拟合参数生成重构分布
-            reconstructedDistributions(t, :) = bimodal_lognormal(fitted_params, plot_diameters);
-        catch
-            % 如果优化失败，回退到单峰
-            D_g = exp(log(D_mean(t)) - 0.5 * log(geo_std_dev(t)^2));
-            sigma_g = geo_std_dev(t);
-            
-            for j = 1:length(plot_diameters)
-                D = plot_diameters(j);
-                reconstructedDistributions(t, j) = (moments(t, 1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
-                    exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
-            end
-        end
-    else
-        % 单峰拟合
-        D_g = exp(log(D_mean(t)) - 0.5 * log(geo_std_dev(t)^2));
-        sigma_g = geo_std_dev(t);
-        
-        for j = 1:length(plot_diameters)
-            D = plot_diameters(j);
-            reconstructedDistributions(t, j) = (moments(t, 1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
-                exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
-        end
+    for j = 1:length(plot_diameters)
+        D = plot_diameters(j);
+        reconstructedDistributions(t, j) = (moments(t, 1) / (sqrt(2*pi) * log(sigma_g) * D)) * ...
+            exp(-(log(D) - log(D_g))^2 / (2 * log(sigma_g)^2));
     end
 end
 
 [Y_recon, X_recon] = meshgrid(plot_diameters, 1:numTimePoints);
 surf(X_recon, Y_recon, reconstructedDistributions);
-set(gca, 'YScale', 'log');
-view(2);
+set(gca, 'YScale', 'log');  % Y轴改为log刻度
+view(2); % 平面视图
 shading interp;
 colorbar;
 ylabel('粒径 (nm)');
 xlabel('时间点索引');
-title('基于多峰拟合重构的粒径分布随时间变化');
+title('基于矩重构的粒径分布随时间变化');
 
-% 调整颜色映射
-colormap(jet);
+% 添加时间标签
+colormap(jet); % 使用 jet 色谱以增强对比度
 
-% 调整颜色范围
+% 调整颜色范围，使热图更清晰
 for i = [1, 2]
     subplot(1, 2, i);
     if i == 1
+        % 原始数据使用第95百分位数作为上限
         upperLimit = prctile(particleCounts(:), 95);
         caxis([0, upperLimit]);
     else
+        % 重构数据使用第95百分位数作为上限
         upperLimit = prctile(reconstructedDistributions(:), 95);
         caxis([0, upperLimit]); 
     end
     
+    % 添加颜色条标题
     c = colorbar;
     c.Label.String = 'dN/dlogD';
 end
 
-% 如果时间点适当，添加时间标签
+% 添加控制选项，可以选择性地使用对数颜色映射
+% 取消下面注释以启用对数颜色尺度
+% for i = [1, 2]
+%     subplot(1, 2, i);
+%     set(gca, 'ColorScale', 'log');
+%     caxis([1, max(caxis)]); % 对数尺度下避免0值
+% end
+
+% 如果可能，使用实际时间点作为X轴标签
 if numTimePoints <= 10
     subplot(1, 2, 1);
     xticks(1:numTimePoints);
@@ -439,9 +388,3 @@ if numTimePoints <= 10
     xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
     xtickangle(45);
 end
-
-% 保存多峰拟合结果
-save([F2_folder,'particle_distribution_multimodal_fits.mat'], 'reconstructedDistributions', ...
-     'plot_diameters', 'timeVector');
-
-fprintf('多峰分布拟合分析完成并保存到 particle_distribution_multimodal_fits.mat\n');
