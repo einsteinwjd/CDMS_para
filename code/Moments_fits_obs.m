@@ -332,3 +332,64 @@ if numTimePoints <= 10
     xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
     xtickangle(45);
 end
+
+%% J30 comparison between original method and moments approximation
+fprintf('计算J30的观测值和moments近似值时间序列对比...\n');
+
+% 计算原始数据的J30
+J30_original = Jx_cal(simulatedPN, diameterBins, 30);
+
+% 创建基于moments重构的粒径分布的timetable
+PN_reconstructed = array2timetable(reconstructedDistributions, 'RowTimes', timeVector);
+
+% 计算重构分布的J30
+J30_moments = Jx_cal(PN_reconstructed, plot_diameters, 30);
+
+% 绘制对比图
+figure('Position', [100, 100, 1000, 500]);
+plot(timeVector, J30_original, 'b-', 'LineWidth', 2);
+hold on;
+plot(timeVector, J30_moments, 'r--', 'LineWidth', 2);
+hold off;
+title('J30对比: 观测值 vs. Moments近似值');
+xlabel('时间');
+ylabel('J30 (cm^{-3} s^{-1})');
+legend('观测值', 'Moments近似值');
+grid on;
+datetick('x', 'HH:MM', 'keepticks');
+
+% 计算误差指标
+valid_indices = (J30_original > 0) & ~isnan(J30_original) & ~isnan(J30_moments);
+relative_error = abs(J30_moments(valid_indices) - J30_original(valid_indices)) ./ J30_original(valid_indices) * 100;
+mean_rel_error = mean(relative_error, 'omitnan');
+max_rel_error = max(relative_error, [], 'omitnan');
+
+% 添加误差指标文本注释
+text(0.05, 0.9, sprintf('平均相对误差: %.2f%%\n最大相对误差: %.2f%%', ...
+     mean_rel_error, max_rel_error), 'Units', 'normalized');
+
+% 保存结果供进一步分析
+save([F2_folder,'J30_comparison.mat'], 'J30_original', 'J30_moments', ...
+     'mean_rel_error', 'max_rel_error', 'timeVector');
+
+fprintf('J30对比完成。结果已保存至J30_comparison.mat\n');
+
+% 额外创建一个绘图展示粒径分布和30nm的位置
+figure('Position', [100, 100, 1000, 400]);
+subplot(1, 2, 1);
+% 选择一个时间点展示
+sample_time_idx = round(numTimePoints/2);
+semilogx(diameterBins, particleCounts(sample_time_idx, :), 'bo-', 'LineWidth', 1.5);
+hold on;
+semilogx(plot_diameters, reconstructedDistributions(sample_time_idx, :), 'r-', 'LineWidth', 2);
+% 标记30nm位置
+plot([30 30], ylim, 'k--', 'LineWidth', 1.5);
+xlabel('粒径 (nm)');
+ylabel('dN/dlogD');
+title(['时间点: ', datestr(timeVector(sample_time_idx), 'HH:MM'), ' 的粒径分布']);
+legend('观测分布', 'Moments重构', '30 nm', 'Location', 'best');
+grid on;
+
+% 绘制不同时间点的J30通量变化
+subplot(1, 2, 2);
+times_to_show = round(linspace(1, numTimePoints, min(6, numTimePoints)));

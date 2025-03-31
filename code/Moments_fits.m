@@ -6,7 +6,7 @@ path_define;
 load([F1_folder,'modeldata_to_timetable.mat']);
 
 % extract the data of first day for test
-target_day = 4;
+target_day = 3;
 simulatedPN = simulatedPN(601*(target_day-1)+1:601*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
@@ -333,3 +333,44 @@ if numTimePoints <= 10
     xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
     xtickangle(45);
 end
+
+
+%% J30 comparison between original method and moments approximation
+fprintf('Calculating J30 using original and moments-approximated distributions...\n');
+
+% Calculate J30 from original data
+
+    J30_original = Jx_cal(simulatedPN,diameterBins,30);
+
+
+PN_reconstructed = timetable(simulatedPN.Time,reconstructedDistributions);
+    % Calculate J30 from reconstructed distribution
+    J30_moments = Jx_cal(PN_reconstructed,diameterBins,30);
+
+
+% Plot comparison
+figure('Position', [100, 100, 1000, 500]);
+plot(timeVector, J30_original, 'b-', 'LineWidth', 2);
+hold on;
+plot(timeVector, J30_moments, 'r--', 'LineWidth', 2);
+hold off;
+title('J30 Comparison: Original vs. Moments Approximation');
+xlabel('Time');
+ylabel('J30 (cm^{-3} s^{-1})');
+legend('Original Method', 'Moments Approximation');
+grid on;
+
+% Calculate error metrics
+relative_error = abs(J30_moments - J30_original) ./ J30_original * 100;
+mean_rel_error = mean(relative_error, 'omitnan');
+max_rel_error = max(relative_error, [], 'omitnan');
+
+% Add text annotation with error metrics
+text(0.05, 0.9, sprintf('Mean Relative Error: %.2f%%\nMax Relative Error: %.2f%%', ...
+     mean_rel_error, max_rel_error), 'Units', 'normalized');
+
+% Save results for further analysis
+save([F2_folder,'J30_comparison.mat'], 'J30_original', 'J30_moments', ...
+     'mean_rel_error', 'max_rel_error');
+
+fprintf('J30 comparison complete. Results saved to J30_comparison.mat\n');
