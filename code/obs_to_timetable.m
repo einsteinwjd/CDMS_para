@@ -28,15 +28,18 @@ disp(fieldnames(data));
 dates = datetime(string(data.date), 'InputFormat', 'yyyyMMdd');
 
 % Create time vector for one day (from 0 to 24 hours, 12-minute intervals)
-minutes_per_day = 24 * 60;
-time_intervals = 12; % 12 minutes
-time_points = minutes_per_day / time_intervals;
-time_vector = (0:time_points-1) * (time_intervals/60); % in hours
+dates = [datetime(2023, 7, 23), datetime(2023, 7, 29), datetime(2023, 7, 30), datetime(2023, 7, 31), datetime(2023, 8, 3), datetime(2023, 8, 4)];
+simulatedTime = [];
+for i = 1:length(dates)
+    simulatedTime = [simulatedTime, dates(i)+timeofday(datetime(0,0,0,8,0,0)):minutes(5):dates(i)+timeofday(datetime(0,0,0,17,59,59))];
+end
+
+time_vector = simulatedTime'; % in hours
 
 % Create a complete datetime array for all measurements
-[D, T] = meshgrid(dates, time_vector);
-time_labels = D + hours(T);
-time_labels = time_labels(:); % Convert to column vector
+% [D, T] = meshgrid(dates, time_vector);
+% time_labels = D + hours(T);
+% time_labels = time_labels(:); % Convert to column vector
 
 % Extract data to timetable
 % Concatenate data from cells
@@ -48,7 +51,7 @@ org_combined = vertcat(data.org{:});
 org_names = arrayfun(@(x) ['vbs' num2str(x)], 1:9, 'UniformOutput', false);
 
 % Create timetable
-tt_precursors = timetable(time_labels, sa_combined, dma_combined, org_combined(:,1), org_combined(:,2), org_combined(:,3), org_combined(:,4), org_combined(:,5), org_combined(:,6), org_combined(:,7), org_combined(:,8), org_combined(:,9));
+tt_precursors = timetable(time_vector, sa_combined, dma_combined, org_combined(:,1), org_combined(:,2), org_combined(:,3), org_combined(:,4), org_combined(:,5), org_combined(:,6), org_combined(:,7), org_combined(:,8), org_combined(:,9));
 
 % Set variable names
 tt_precursors.Properties.VariableNames = {'sa', 'dma', org_names{:}};
@@ -67,7 +70,7 @@ psd_names = arrayfun(@(x) ['d' num2str(x, '%.1f')], data.size_vec, 'UniformOutpu
 
 % Create timetable for PSD data
 % Convert time and PSD data into timetable more efficiently
-tt_psd = array2timetable(psd_combined, 'RowTimes', time_labels);
+tt_psd = array2timetable(psd_combined, 'RowTimes', time_vector);
 
 % Set variable names
 tt_psd.Properties.VariableNames = psd_names;

@@ -9,24 +9,24 @@ load([F1_folder,'timetable_data.mat']);
 
 % extract the data of first day for test
 % target_day = 1;
-obsPN = tt_psd(120*(target_day-1)+1:120*target_day,:);
+simulatedPN = tt_psd(120*(target_day-1)+1:120*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
-if ~exist('obsPN', 'var')
+if ~exist('simulatedPN', 'var')
     % Prompt user to select the file containing the data
     [file, path] = uigetfile('*.mat', 'Select the MAT file containing simulatedPN');
     if file == 0
         error('No file selected');
     end
-    load(fullfile(path, file), 'obsPN');
+    load(fullfile(path, file), 'simulatedPN');
 end
 
 % Extract time vector
-timeVector = obsPN.Time;
-numTimePoints = height(obsPN);
+timeVector = simulatedPN.Time;
+numTimePoints = height(simulatedPN);
 
 % Extract bin centers from column names of simulatedPN
-varNames = obsPN.Properties.VariableNames;
+varNames = simulatedPN.Properties.VariableNames;
 diameterBins = zeros(1, length(varNames));
 
 for i = 1:length(varNames)
@@ -53,7 +53,7 @@ moments = zeros(numTimePoints, 7); % 0th through 6th moments
 % Calculate moments for each time point
 for t = 1:numTimePoints
     % Extract particle number distribution at this time
-    PN = table2array(obsPN(t, 1:end)); % Exclude time column
+    PN = table2array(simulatedPN(t, 1:end)); % Exclude time column
     
     % Calculate moments (k = 0, 1, 2, 3, 4, 5, 6)
     for k = 0:6
@@ -182,7 +182,7 @@ for i = 1:length(time_indices)
     hold on;
     
     % Plot the original data points for comparison
-    semilogx(diameterBins, table2array(obsPN(t_idx, 1:end)), 'ro', 'MarkerSize', 6);
+    semilogx(diameterBins, table2array(simulatedPN(t_idx, 1:end)), 'ro', 'MarkerSize', 6);
     
     title(['Time = ' datestr(timeVector(t_idx), 'HH:MM:SS') ' - Reconstructed vs Original Distribution']);
     xlabel('Diameter (nm)');
@@ -201,7 +201,7 @@ for i = 1:length(time_indices)
     t_idx = time_indices(i);
     
     % Original data
-    original_data = table2array(obsPN(t_idx, 1:end));
+    original_data = table2array(simulatedPN(t_idx, 1:end));
     
     % Try to fit bimodal lognormal distribution
     % Use higher order moments to characterize distribution shape
@@ -250,7 +250,7 @@ sgtitle('Higher-Order Moments Analysis and Fitting of Particle Size Distribution
 
 %% 创建随时间变化的热图
 % 重新组织粒子数据用于热图绘制
-particleCounts = table2array(obsPN(:, 1:numBins));
+particleCounts = table2array(simulatedPN(:, 1:numBins));
 
 % 创建时间与粒径的网格
 [Y, X] = meshgrid(diameterBins, 1:numTimePoints);
@@ -323,15 +323,15 @@ end
 % end
 
 % 如果可能，使用实际时间点作为X轴标签
-    tick_index = 1:24:numTimePoints;
+    tick_index = 1:120:numTimePoints;
     subplot(1, 2, 1);
-    % xlim([1,numTimePoints+1]);
+    xlim([1,1201]);
     xticks(tick_index);
     xticklabels(cellstr(datestr(timeVector(tick_index), 'HH:MM')));
     xtickangle(45);
 
     subplot(1, 2, 2);
-    % xlim([1,1201]);
+    xlim([1,1201]);
     xticks(tick_index);
     xticklabels(cellstr(datestr(timeVector(tick_index), 'HH:MM')));
     xtickangle(45);
@@ -340,7 +340,7 @@ end
 fprintf('计算J30的观测值和moments近似值时间序列对比...\n');
 
 % 计算原始数据的J30
-J30_original = Jx_cal(obsPN, diameterBins, 30);
+J30_original = Jx_cal(simulatedPN, diameterBins, 30);
 
 % 创建基于moments重构的粒径分布的timetable
 PN_reconstructed = array2timetable(reconstructedDistributions, 'RowTimes', timeVector);

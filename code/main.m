@@ -12,4 +12,4 @@ for target_day = 1:6
     Moments_fits_obs(target_day);
 
 end
-multi_peak_fit; % multi-peak fit method, using Multi_peak_distribution_fits functions.
+% multi_peak_fit; % multi-peak fit method, using Multi_peak_distribution_fits functions.

@@ -9,7 +9,7 @@ load([F1_folder,'modeldata_to_timetable.mat']);
 
 % extract the data of first day for test
 % target_day = 3;
-simulatedPN = simulatedPN(601*(target_day-1)+1:601*target_day,:);
+simulatedPN = simulatedPN(1201*(target_day-1)+1:1201*target_day,:);
 
 % Check if data exists in workspace, otherwise load it
 if ~exist('simulatedPN', 'var')
@@ -324,17 +324,20 @@ end
 % end
 
 % 如果可能，使用实际时间点作为X轴标签
-if numTimePoints <= 10
+% if numTimePoints <= 10
+    tick_index = 1:120:numTimePoints;
     subplot(1, 2, 1);
-    xticks(1:numTimePoints);
-    xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
+    xlim([1,1201]);
+    xticks(tick_index);
+    xticklabels(cellstr(datestr(timeVector(tick_index), 'HH:MM')));
     xtickangle(45);
 
     subplot(1, 2, 2);
-    xticks(1:numTimePoints);
-    xticklabels(cellstr(datestr(timeVector, 'HH:MM')));
+    xlim([1,1201]);
+    xticks(tick_index);
+    xticklabels(cellstr(datestr(timeVector(tick_index), 'HH:MM')));
     xtickangle(45);
-end
+% end
 
 
 %% J30 comparison between original method and moments approximation
