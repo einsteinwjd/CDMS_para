@@ -1,0 +1,46 @@
+---
+title: "Moments method to reconstruct particle size distribution"
+author: "Jiandong Wang"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+## Results
+
+### Observational Data Analysis
+
+![](../figs/distribution_reconstruction_obs_day1_300dpi.png)
+**Figure 1.** Reconstruction of particle distribution function derived from observational data on day 1. The reconstruction utilizes a non-parametric approach to estimate the underlying probability density function from discrete measurements, providing insights into the statistical properties of the particle ensemble.
+
+![](../figs/moments_analysis_obs_day1_300dpi.png)
+**Figure 2.** Statistical moments analysis of observational data collected on day 1. The plots illustrate the evolution of first and second-order moments across different experimental conditions, quantifying central tendencies and variance characteristics of the measured distribution.
+
+![](../figs/J30_distribution_comparison_obs_day1_300dpi.png)
+**Figure 4.** Comparative analysis of J30 parameter distributions from observational data on day 1. Multiple distribution curves represent different experimental conditions, allowing for direct assessment of parameter variability and response to environmental factors.
+
+![](../figs/J30_comparison_timeseries_obs_day1_300dpi.png)
+**Figure 5.** Time series comparison of J30 parameter variations in observational datasets from day 1. Temporal evolution of the parameter demonstrates dynamic response characteristics and potential periodicity in the observed physical system.
+
+![](../figs/particle_distribution_heatmap_obs_day1_300dpi.png)
+**Figure 6.** Heatmap representation of particle distribution from observational data on day 1. The two-dimensional visualization maps particle density across parameter space, with color intensity indicating concentration levels and revealing spatial clustering patterns.
+
+### Simulation Results
+
+![](../figs/distribution_reconstruction_sim_day1_300dpi.png)
+**Figure 7.** Reconstructed particle distribution function from simulation data on day 1. The computational model generates this distribution based on theoretically derived equations, providing a baseline for comparison with observational results.
+
+![](../figs/moments_analysis_sim_day1_300dpi.png)
+**Figure 8.** Statistical moments analysis from simulation data on day 1. These plots demonstrate the theoretically predicted behavior of first and second-order moments under controlled virtual conditions, serving as validation benchmarks for experimental observations.
+
+![](../figs/J30_distribution_comparison_sim_day1_300dpi.png)
+**Figure 10.** Comparative analysis of simulated J30 parameter distributions from day 1. Multiple distribution curves represent different simulation parameters, revealing theoretical sensitivities and system response to controlled variable manipulation.
+
+![](../figs/J30_comparison_timeseries_sim_day1_300dpi.png)
+**Figure 11.** Time series comparison of J30 parameter variations in simulation results from day 1. The predicted temporal evolution illustrates theoretical dynamics and stability characteristics of the modeled system under specified initial conditions.
+
+![](../figs/particle_distribution_heatmap_sim_day1_300dpi.png)
+**Figure 12.** Heatmap visualization of simulated particle distribution on day 1. This two-dimensional representation maps theoretical particle density across parameter space, providing insights into expected spatial organization and concentration gradients.

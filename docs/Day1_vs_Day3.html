@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Comparison of Observations and Simulations</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <hr>
+<h2 id="title-day-1-vs-day-3-comparison-observations-and-simulationsauthor-jiandong-wangdate-r-sysdateoutput-html_document">title: &quot;Day 1 vs Day 3 Comparison: Observations and Simulations&quot;
+author: &quot;Jiandong Wang&quot;
+date: &quot;<code>r Sys.Date()</code>&quot;
+output: html_document</h2>
+<pre><code class="language-{r">knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+</code></pre>
+<h2 id="comparison-of-observations-and-simulations">Comparison of Observations and Simulations</h2>
+<p>This document presents a comparison between observational data and simulation results for Day 1 and Day 3. The analysis focuses on various statistical moments.</p>
+<h3 id="day-1-analysis">Day 1 Analysis</h3>
+<div class="row">
+    <div class="col-md-6">
+        <figure>
+            <img src="file:////Users/jiandongwang/Library/Mobile Documents/com~apple~CloudDocs/usual/学生/丁老师组/林齐颢/CDMS_para/figs/moments_analysis_obs_day1_300dpi.png" alt="Day 1 Observations" width="100%">
+            <figcaption>**Figure 1**: Statistical moments from Day 1 observations.</figcaption>
+        </figure>
+    </div>
+    <div class="col-md-6">
+        <figure>
+            <img src="file:////Users/jiandongwang/Library/Mobile Documents/com~apple~CloudDocs/usual/学生/丁老师组/林齐颢/CDMS_para/figs/moments_analysis_sim_day1_300dpi.png" alt="Day 1 Simulations" width="100%">
+            <figcaption>**Figure 2**: Statistical moments from Day 1 simulations.</figcaption>
+        </figure>
+    </div>
+</div>
+<h3 id="day-3-analysis">Day 3 Analysis</h3>
+<div class="row">
+    <div class="col-md-6">
+        <figure>
+            <img src="file:////Users/jiandongwang/Library/Mobile Documents/com~apple~CloudDocs/usual/学生/丁老师组/林齐颢/CDMS_para/figs/moments_analysis_obs_day3_300dpi.png" alt="Day 3 Observations" width="100%">
+            <figcaption>**Figure 3**: Statistical moments from Day 3 observations.</figcaption>
+        </figure>
+    </div>
+    <div class="col-md-6">
+        <figure>
+            <img src="file:////Users/jiandongwang/Library/Mobile Documents/com~apple~CloudDocs/usual/学生/丁老师组/林齐颢/CDMS_para/figs/moments_analysis_sim_day3_300dpi.png" alt="Day 3 Simulations" width="100%">
+            <figcaption>**Figure 4**: Statistical moments from Day 3 simulations.</figcaption>
+        </figure>
+    </div>
+</div>
+<h2 id="key-findings">Key Findings</h2>
+<p>The observational data reveals distinct particle growth mechanisms between Day 1 and Day 3. For Day 1, the concurrent increase in mean particle diameter, total volume, and surface area suggests that condensation plays a predominant role in particle growth dynamics. The reduction in particle number concentration simultaneously indicates that coagulation processes are active, contributing to the removal of smaller particles from the distribution.</p>
+<p>In contrast, Day 3 observations demonstrate a fundamentally different growth regime. While mean particle diameter continues to increase, both volume and surface area metrics remain relatively stable. This pattern strongly indicates that coagulation has become the primary mechanism driving particle growth, as opposed to condensation which would typically result in observable increases in total particulate mass and surface area.</p>
+<p>Interestingly, the simulation results fail to capture this mechanistic transition between the two periods. For both Day 1 and Day 3, the simulations predict continuous growth in volume and surface area, suggesting a persistent condensation-dominated regime. This discrepancy highlights potential limitations in the current modeling approach, particularly in representing the complex interactions between condensation and coagulation processes under varying atmospheric conditions.</p>
+<p>These findings emphasize the importance of incorporating time-dependent changes in dominant growth mechanisms when modeling aerosol evolution in atmospheric systems, and suggest that future modeling efforts should focus on improving the representation of the transition between condensation and coagulation-dominated regimes.</p>
+
+            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+            
+        </body>
+        </html>

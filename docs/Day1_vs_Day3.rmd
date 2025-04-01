@@ -1,0 +1,41 @@
+---
+title: "Day 1 vs Day 3 Comparison: Observations and Simulations"
+author: "Jiandong Wang"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+## Comparison of Observations and Simulations
+
+This document presents a comparison between observational data and simulation results for Day 1 and Day 3. The analysis focuses on various statistical moments.
+
+### Day 1 Analysis
+
+![](../figs/moments_analysis_obs_day1_300dpi.png)
+**Figure 1.** Statistical moments from Day 1 observations.
+
+![](../figs/moments_analysis_sim_day1_300dpi.png)
+**Figure 2.** Statistical moments from Day 1 simulations.
+
+### Day 3 Analysis
+
+![](../figs/moments_analysis_obs_day3_300dpi.png)
+**Figure 3.** Statistical moments from Day 3 observations.
+
+![](../figs/moments_analysis_sim_day3_300dpi.png)
+**Figure 4.** Statistical moments from Day 3 simulations.
+
+## Key Findings
+
+The observational data reveals distinct particle growth mechanisms between Day 1 and Day 3. For Day 1, the concurrent increase in mean particle diameter, total volume, and surface area suggests that condensation plays a predominant role in particle growth dynamics. The reduction in particle number concentration simultaneously indicates that coagulation processes are active, contributing to the removal of smaller particles from the distribution. 
+
+In contrast, Day 3 observations demonstrate a fundamentally different growth regime. While mean particle diameter continues to increase, both volume and surface area metrics remain relatively stable. This pattern strongly indicates that coagulation has become the primary mechanism driving particle growth, as opposed to condensation which would typically result in observable increases in total particulate mass and surface area.
+
+Interestingly, the simulation results fail to capture this mechanistic transition between the two periods. For both Day 1 and Day 3, the simulations predict continuous growth in volume and surface area, suggesting a persistent condensation-dominated regime. This discrepancy highlights potential limitations in the current modeling approach, particularly in representing the complex interactions between condensation and coagulation processes under varying atmospheric conditions.
+
+These findings emphasize the importance of incorporating time-dependent changes in dominant growth mechanisms when modeling aerosol evolution in atmospheric systems, and suggest that future modeling efforts should focus on improving the representation of the transition between condensation and coagulation-dominated regimes.
+
