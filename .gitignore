@@ -17,6 +17,7 @@ figs/
 *.txt
 *.dat
 *.bin
+*.pdf
 
 # Image formats
 *.png
