@@ -19,6 +19,11 @@ figs/
 *.bin
 *.pdf
 *.asv
+*.docx
+*.pptx
+*.doc
+*.ppt
+*.html
 
 # Image formats
 *.png
@@ -29,6 +34,7 @@ figs/
 *.tif
 *.tiff
 *.svg
+*.fig
 
 # OS generated files
 .DS_Store

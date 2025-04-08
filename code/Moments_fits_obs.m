@@ -1,11 +1,11 @@
 % clear; close all;
-function [] = Moments_fits_obs(target_day)
+function [] = Moments_fits_obs(target_day,path)
 close all;
 % Moments_fits.m
 % This script calculates statistical moments of particle size distributions over time
 % from a timetable containing particle number counts in different size bins
-path_define;
-load([F1_folder,'timetable_data.mat']);
+eval(path);
+load([F1_folder,'timetable_data_nj.mat']);
 
 % extract the data of first day for test
 % target_day = 1;
