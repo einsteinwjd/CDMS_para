@@ -80,7 +80,7 @@ S_prop = pi * moments(:,3);
 V_prop = (pi/6) * moments(:,4);
 
 % Effective diameter (3rd moment / 2nd moment)
-D_eff = moments(:,4) ./ moments(:,3);
+D_eff = moments(:,4) ./ moments(:,3); % D_eff = M3 / M2
 
 % Calculate geometric standard deviation
 % (Using relationship between moments)
